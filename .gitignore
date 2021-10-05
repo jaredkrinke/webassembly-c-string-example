@@ -1,3 +1,4 @@
 *.wasm
 wasi-sdk
 node_modules
+web
