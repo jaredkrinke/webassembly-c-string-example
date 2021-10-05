@@ -13,30 +13,39 @@ export const use = (create, run) => {
     }
 };
 
+// Manage the lifetime of an allocation
 export const useInstanceAllocation = (module, create, run) => {
     use(() => {
-        const address = create();
-        return {
-            address,
-            dispose: () => module.instance.exports.deallocate(address),
+        // Create the disposable object first
+        const objectWithDispose = {
+            address: 0,
+            dispose: function() { module.instance.exports.deallocate(this.address); },
         };
+
+        // Then allocate
+        objectWithDispose.address = create();
+        return objectWithDispose;
     }, run);
 };
 
+// Manage the lifetime of a *new* allocation (with the given size)
+export const useNewInstanceAllocation = (module, size, run) => {
+    return useInstanceAllocation(module, () => module.instance.exports.allocate(size), run);
+};
+
+// Decode a string and manage its lifetime
 export const useInstanceString = (module, create, run) => {
+    // Call the "create" function and get back the address of a struct: [size (32-bit unsigned int), byte1, byte2, ...]
     useInstanceAllocation(module, create, ({ address }) => {
         const buffer = module.instance.exports.memory.buffer;
-        const encodedStringLength = (new Uint32Array(buffer, address, 1))[0];
+        const encodedStringLength = (new DataView(buffer, address, 4)).getUint32(0, true); // WebAssembly is little endian
         const encodedStringBuffer = new Uint8Array(buffer, address + 4, encodedStringLength); // Skip the 4 byte size
         const str = textDecoder.decode(encodedStringBuffer);
         run(str);
     })
 };
 
-const useNewInstanceAllocation = (module, size, run) => {
-    return useInstanceAllocation(() => module.instance.exports.allocate(size), run);
-};
-
+// Encode a *new* string and manage its lifetime
 export const useNewInstanceString = (module, str, run) => {
     // Encode the string (with null terminator) to get the required size
     const nullTerminatedString = str + "\0";

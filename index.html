@@ -1,0 +1,25 @@
+<html>
+    <body>
+        <p>Count of the letter "a" in the string "<span id="input">a string that has many letter a's</span>" <span id="result1">?</span></p>
+        <p>Here's a string with 7 b's in it: "<span id="result2">?</span>"</p>
+
+        <script type="module">
+            import { useNewInstanceString, useInstanceString } from "./use.js";
+
+            (async () => {
+                const buffer = await (await fetch("./string-example.wasm")).arrayBuffer();
+                const module = await WebAssembly.instantiate(buffer);
+
+                const inputString = document.getElementById("input").innerText;
+                useNewInstanceString(module, inputString, (stringAddress) => {
+                    const result = module.instance.exports.count_as(stringAddress);
+                    document.getElementById("result1").innerText = result;
+                });
+
+                useInstanceString(module, () => module.instance.exports.write_bs(7), str => {
+                    document.getElementById("result2").innerText = str;
+                });
+            })();
+        </script>
+    </body>
+</html>
