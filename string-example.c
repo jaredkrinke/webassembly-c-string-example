@@ -4,11 +4,11 @@
 #define WASM_EXPORT(symbol) WASM_EXPORT_AS(#symbol) symbol
 
 // Memory management helpers
-unsigned char* WASM_EXPORT(allocate)(unsigned int size) {
-    return (unsigned char*)malloc(size);
+void* WASM_EXPORT(allocate)(unsigned int size) {
+    return malloc(size);
 }
 
-void WASM_EXPORT(deallocate)(unsigned char* allocation) {
+void WASM_EXPORT(deallocate)(void* allocation) {
     free(allocation);
 }
 
@@ -24,22 +24,17 @@ unsigned int WASM_EXPORT(count_as)(const char* string) {
     return numberOfAs;
 }
 
-// Example of returning a dynamic string
-typedef struct {
-    unsigned int length;
-    char buffer[];
-} wasm_string;
+const char* WASM_EXPORT(write_bs)(unsigned int count) {
+    // Allocate space for the string, plus a null terminator
+    char* str = (char*)malloc(count + 1);
 
-wasm_string* WASM_EXPORT(write_bs)(unsigned int count) {
-    // Allocate space for the string length and content (note: no null terminator)
-    wasm_string* str = (wasm_string*)malloc(sizeof(unsigned int) + count);
-    str->length = count;
-
-    // Fill in the string
-    char* c = &str->buffer[0];
+    // Fill in the string and null terminator
+    char* c = str;
     for (unsigned int i = 0; i < count; i++) {
         *c = 'b';
         ++c;
     }
+    *c = '\0';
+
     return str;
 }
